@@ -1,25 +1,39 @@
-import { DropdownMenu, DropdownMenuTrigger } from "./ui/dropdown-menu";
-import { Sidebar, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider } from "./ui/sidebar";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
+  SidebarProvider,
+} from "./ui/sidebar";
 
 function SideBar(): React.ReactElement {
   return (
-    <SidebarProvider>
+    <SidebarProvider className="w-fit">
       <Sidebar className="dark text-white bg-[#202020]">
         <SidebarHeader className="text-center py-10">
-          <h3 className="text-lg font-bold">ITS 자율주행 시뮬레이터</h3>
+          <h3 className="text-lg font-bold text-[#E67E22]">
+            ITS 자율주행 시뮬레이터
+          </h3>
         </SidebarHeader>
-        <SidebarMenu>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <SidebarMenuButton className="py-5 px-4">
-                시뮬레이션 설정
-              </SidebarMenuButton>
-            </DropdownMenuTrigger>
-          </DropdownMenu>
-        </SidebarMenu>
+        <SidebarContent>
+          <SidebarGroupLabel className="px-3 text-md text-white">
+            시뮬레이션 옵션
+          </SidebarGroupLabel>
+          <SidebarMenuSub>
+            <SidebarMenuSubItem>
+              <SidebarMenuSubButton>차선 개수</SidebarMenuSubButton>
+            </SidebarMenuSubItem>
+            <SidebarMenuSubItem>
+              <SidebarMenuSubButton>장애물 설정</SidebarMenuSubButton>
+            </SidebarMenuSubItem>
+          </SidebarMenuSub>
+        </SidebarContent>
       </Sidebar>
     </SidebarProvider>
-  )
-};
+  );
+}
 
 export default SideBar;
