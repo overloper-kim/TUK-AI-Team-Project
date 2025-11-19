@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   Collapsible,
   CollapsibleContent,
@@ -14,8 +15,15 @@ import {
   SidebarMenuSub,
   SidebarProvider,
 } from "./ui/sidebar";
+import { Slider } from "./ui/slider";
 
 function SideBar(): React.ReactElement {
+
+  const [lane, setLane] = useState<number>(1);
+  const [obstacle, setObstacle] = useState<number>(1);
+  const [frequency, setFrequency] = useState<number>(1);
+  const [learning, setLearning] = useState<number>(10);
+
   return (
     <SidebarProvider className="w-fit">
       <Sidebar className="dark text-white bg-[#202020]">
@@ -25,28 +33,55 @@ function SideBar(): React.ReactElement {
           </h3>
         </SidebarHeader>
         <SidebarContent>
-          <SidebarGroupLabel className="px-3 text-md text-white">
-            시뮬레이션 옵션
-          </SidebarGroupLabel>
           <SidebarMenu>
             <Collapsible defaultOpen className="group/collapsible">
               <SidebarMenuItem>
                 <CollapsibleTrigger asChild>
-                  <SidebarMenuButton>차선 설정</SidebarMenuButton>
+                  <SidebarMenuButton className="text-md font-bold">차선 설정</SidebarMenuButton>
                 </CollapsibleTrigger>
                 <CollapsibleContent>
                   <SidebarMenuSub>
-                    <div>차로 개수</div>
+                    <div className="py-3">
+                      <Slider defaultValue={[0]} max={5} step={1} value={[lane]} onValueChange={(value) => {
+                        setLane(value[0])
+                      }}/>
+                      <p className="text-right py-3">
+                        {lane} 차선
+                      </p>
+                    </div>
                   </SidebarMenuSub>
                 </CollapsibleContent>
               </SidebarMenuItem>
+            </Collapsible>
+            <Collapsible defaultOpen className="group/collapsible">
               <SidebarMenuItem>
                 <CollapsibleTrigger asChild>
-                  <SidebarMenuButton>차선 설정</SidebarMenuButton>
+                  <SidebarMenuButton className="text-md font-bold">장애물 개수</SidebarMenuButton>
                 </CollapsibleTrigger>
                 <CollapsibleContent>
                   <SidebarMenuSub>
-                    <div>차로 개수</div>
+                    <div className="py-3">
+                      <Slider defaultValue={[0]} max={10} step={1} value={[obstacle]} onValueChange={(value) => {
+                        setObstacle(value[0])
+                      }} />
+                      <p className="text-right py-3">
+                        {obstacle} 개
+                      </p>
+                    </div>
+                  </SidebarMenuSub>
+                </CollapsibleContent>
+              </SidebarMenuItem>
+            </Collapsible>
+            <Collapsible defaultOpen className="group/collapsible">
+              <SidebarMenuItem>
+                <CollapsibleTrigger asChild>
+                  <SidebarMenuButton className="text-md font-bold">학습 횟수</SidebarMenuButton>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <SidebarMenuSub>
+                    <div className="py-3">
+                      <Slider defaultValue={[0]} max={100} step={10} />
+                    </div>
                   </SidebarMenuSub>
                 </CollapsibleContent>
               </SidebarMenuItem>
