@@ -16,6 +16,7 @@ import {
   SidebarProvider,
 } from "./ui/sidebar";
 import { Slider } from "./ui/slider";
+import { Button } from "./ui/button";
 
 function SideBar(): React.ReactElement {
 
@@ -27,9 +28,9 @@ function SideBar(): React.ReactElement {
   return (
     <SidebarProvider className="w-fit">
       <Sidebar className="dark text-white bg-[#202020]">
-        <SidebarHeader className="text-center py-10">
-          <h3 className="text-lg font-bold text-[#E67E22]">
-            ITS 자율주행 시뮬레이터
+        <SidebarHeader className="text-center py-5">
+          <h3 className="text-md">
+            시뮬레이터 설정
           </h3>
         </SidebarHeader>
         <SidebarContent>
@@ -37,12 +38,12 @@ function SideBar(): React.ReactElement {
             <Collapsible defaultOpen className="group/collapsible">
               <SidebarMenuItem>
                 <CollapsibleTrigger asChild>
-                  <SidebarMenuButton className="text-md font-bold">차선 설정</SidebarMenuButton>
+                  <SidebarMenuButton className="p-3">차선 설정</SidebarMenuButton>
                 </CollapsibleTrigger>
                 <CollapsibleContent>
                   <SidebarMenuSub>
                     <div className="py-3">
-                      <Slider defaultValue={[0]} max={5} step={1} value={[lane]} onValueChange={(value) => {
+                      <Slider defaultValue={[0]} min={1} max={5} step={1} value={[lane]} onValueChange={(value) => {
                         setLane(value[0])
                       }}/>
                       <p className="text-right py-3">
@@ -56,12 +57,12 @@ function SideBar(): React.ReactElement {
             <Collapsible defaultOpen className="group/collapsible">
               <SidebarMenuItem>
                 <CollapsibleTrigger asChild>
-                  <SidebarMenuButton className="text-md font-bold">장애물 개수</SidebarMenuButton>
+                  <SidebarMenuButton className="p-3">장애물 개수</SidebarMenuButton>
                 </CollapsibleTrigger>
                 <CollapsibleContent>
                   <SidebarMenuSub>
                     <div className="py-3">
-                      <Slider defaultValue={[0]} max={10} step={1} value={[obstacle]} onValueChange={(value) => {
+                      <Slider defaultValue={[0]} min={1} max={10} step={1} value={[obstacle]} onValueChange={(value) => {
                         setObstacle(value[0])
                       }} />
                       <p className="text-right py-3">
@@ -75,12 +76,41 @@ function SideBar(): React.ReactElement {
             <Collapsible defaultOpen className="group/collapsible">
               <SidebarMenuItem>
                 <CollapsibleTrigger asChild>
-                  <SidebarMenuButton className="text-md font-bold">학습 횟수</SidebarMenuButton>
+                  <SidebarMenuButton className="p-3">장애물 생성 주기</SidebarMenuButton>
                 </CollapsibleTrigger>
                 <CollapsibleContent>
                   <SidebarMenuSub>
                     <div className="py-3">
-                      <Slider defaultValue={[0]} max={100} step={10} />
+                      <Slider defaultValue={[0]} min={1} max={10} step={1} value={[frequency]} onValueChange={(value) => {
+                        setFrequency(value[0])
+                      }} />
+                      <p className="text-right py-3">
+                        {frequency} 초
+                      </p>
+                    </div>
+                  </SidebarMenuSub>
+                </CollapsibleContent>
+              </SidebarMenuItem>
+            </Collapsible>
+            <Collapsible defaultOpen className="group/collapsible">
+              <SidebarMenuItem>
+                <CollapsibleTrigger asChild>
+                  <SidebarMenuButton className="p-3">반복 횟수</SidebarMenuButton>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <SidebarMenuSub>
+                    <div className="py-3">
+                      <Slider defaultValue={[0]} min={10} max={100} step={10} value={[learning]} onValueChange={(value) => {
+                        setLearning(value[0])
+                      }} />
+                      <p className="text-right py-3">
+                        {learning} 회
+                      </p>
+                      <div className="py-3">
+                        <Button className="w-full my-2 bg-blue-500 text-white font-bold">시뮬레이션 시작</Button>
+                        <Button className="w-full my-2 bg-red-500 text-white font-bold">시뮬레이션 정지</Button>
+                        <Button className="w-full my-2 bg-green-500 text-white font-bold">학습 파일 가져오기</Button>
+                      </div>
                     </div>
                   </SidebarMenuSub>
                 </CollapsibleContent>
