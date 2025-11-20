@@ -18,6 +18,7 @@ import { Slider } from "./ui/slider";
 import { Button } from "./ui/button";
 import axios from "axios";
 import Swal from "sweetalert2";
+import { toast } from "sonner";
 
 function SideBar(): React.ReactElement {
 
@@ -25,6 +26,22 @@ function SideBar(): React.ReactElement {
   const [obstacle, setObstacle] = useState<number>(1);
   const [frequency, setFrequency] = useState<number>(1);
   const [learning, setLearning] = useState<number>(10);
+  const [running, setRunning] = useState<boolean>(false);
+
+  const returnSwal = () => {
+    return (
+        Swal.fire({
+          draggable: true,
+          title: "시뮬레이션 오류",
+          text: "시뮬레이션 오류가 발생했습니다. 로그를 확인하세요.",
+          icon: "error",
+          confirmButtonText: "확인",
+          background: "#404040",
+          color: "#FFFFFF",
+          confirmButtonColor: "#FF1313",
+        })
+    )
+  }
   
   const startSimulation = async(event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
@@ -36,20 +53,26 @@ function SideBar(): React.ReactElement {
       learn: learning,
     }).then((res) => {
       console.log(res);
+      toast.success("시뮬레이션이 시작 되었습니다.");
+      setRunning(!running);
     }).catch((err) => {
       console.log(err);
-      return (
-        Swal.fire({
-          draggable: true,
-          title: "시뮬레이션 오류",
-          text: "시뮬레이션 오류가 발생했습니다. 로그를 확인하세요.",
-          icon: "error",
-          confirmButtonText: "확인",
-          background: "#404040",
-          color: "#FFFFFF",
-          confirmButtonColor: "#FF1313",
-        })
-      )
+      returnSwal();
+    })
+  };
+
+  const stopSimulation = async(event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+
+    await axios.post('http://127.0.0.1:3000/sim_stop', {
+      sim_state: "stop"
+    }).then((res) => {
+      console.log(res);
+      toast.success("시뮬레이션이 중단 되었습니다.");
+      setRunning(!running);
+    }).catch((err) => {
+      console.log(err);
+      returnSwal();
     })
   };
 
@@ -135,8 +158,8 @@ function SideBar(): React.ReactElement {
                         {learning} 회
                       </p>
                       <div className="py-3">
-                        <Button className="w-full my-2 bg-blue-500 text-white font-bold" onClick={startSimulation}>시뮬레이션 시작</Button>
-                        <Button className="w-full my-2 bg-red-500 text-white font-bold">시뮬레이션 정지</Button>
+                        <Button className="w-full my-2 bg-blue-500 text-white font-bold" disabled={running} onClick={startSimulation}>시뮬레이션 시작</Button>
+                        <Button className="w-full my-2 bg-red-500 text-white font-bold" disabled={!running} onClick={stopSimulation}>시뮬레이션 정지</Button>
                         <Button className="w-full my-2 bg-green-500 text-white font-bold">학습 파일 가져오기</Button>
                       </div>
                     </div>
