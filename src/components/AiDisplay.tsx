@@ -34,11 +34,6 @@ function AiDisplay(props: DisplayProps): React.ReactElement {
     laneCount - 1,
     Math.max(0, Math.round(props.carState.x)),
   );
-  // const carX = laneCenterX(carLaneIndex);
-
-  // 현재 차선의 왼/오른쪽 경계 (오렌지 라인 위치)
-  const leftBoundaryX = laneBoundaryX(carLaneIndex - 0.5);
-  const rightBoundaryX = laneBoundaryX(carLaneIndex + 0.5);
 
   const roadZ = roadLength / 4;
 
@@ -51,7 +46,7 @@ function AiDisplay(props: DisplayProps): React.ReactElement {
         }}
       >
         <ambientLight intensity={0.7} />
-        <directionalLight position={[5, 15, 10]} intensity={1} />
+        <directionalLight position={[5, 15, 10]} intensity={2} />
 
         {/* 도로: Z+ 방향으로 뻗는 평면 */}
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, roadZ]}>
@@ -72,26 +67,11 @@ function AiDisplay(props: DisplayProps): React.ReactElement {
               position={[x, 0.01, roadZ]}
             >
               <planeGeometry args={[0.08, roadLength]} />
-              <meshBasicMaterial color="#7d7d7d" />
+              <meshBasicMaterial color="#d7d7d7" />
             </mesh>
           );
         })}
 
-        {/* 현재 차선 경계 두 줄 (오렌지) */}
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[leftBoundaryX, 0.02, roadZ]}>
-          <planeGeometry args={[0.15, roadLength]} />
-          <meshBasicMaterial color="#f87101" />
-        </mesh>
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[rightBoundaryX, 0.02, roadZ]}>
-          <planeGeometry args={[0.15, roadLength]} />
-          <meshBasicMaterial color="#f87101" />
-        </mesh>
-
-        {/* 차량 – carLaneIndex 기준 중앙에 위치 */}
-        {/* <mesh position={[0, 0.4, 6]}>
-          <boxGeometry args={[1.4, 0.6, 2.6]} />
-          <meshStandardMaterial color="#ffffff" />
-        </mesh> */}
         <Suspense fallback={null}>
           <Car position={[0, 0.4, 6]} scale={130} rotation={[0, Math.PI, 0]} />
         </Suspense>

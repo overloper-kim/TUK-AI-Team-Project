@@ -1,4 +1,3 @@
-import { useState } from "react";
 import {
   Collapsible,
   CollapsibleContent,
@@ -19,14 +18,19 @@ import { Button } from "./ui/button";
 import axios from "axios";
 import Swal from "sweetalert2";
 import { toast } from "sonner";
+import { useConfigureStore } from "@/store/useConfigreStore";
 
 function SideBar(): React.ReactElement {
-
-  const [lane, setLane] = useState<number>(1);
-  const [obstacle, setObstacle] = useState<number>(1);
-  const [frequency, setFrequency] = useState<number>(1);
-  const [learning, setLearning] = useState<number>(10);
-  const [running, setRunning] = useState<boolean>(false);
+  const lane = useConfigureStore((s) => s.lane);
+  const obstacle =  useConfigureStore((s) => s.obs);
+  const frequency = useConfigureStore((s) => s.frequency);
+  const learning = useConfigureStore((s) => s.learn);
+  const running = useConfigureStore((s) => s.running);
+  const setLane = useConfigureStore((s) => s.setLane);
+  const setObstacle = useConfigureStore((s) => s.setObs);
+  const setFrequency = useConfigureStore((s) => s.setFrequency);
+  const setLearning = useConfigureStore((s) => s.setLearn);
+  const setRunning = useConfigureStore((s) => s.setRunning);
 
   const returnSwal = () => {
     return (
