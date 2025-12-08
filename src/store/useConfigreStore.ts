@@ -16,7 +16,7 @@ interface SimConfigType {
 
 export const useConfigureStore = create<SimConfigType>() (
   immer((set) => ({
-    lane: 1,
+    lane: 3,
     obs: 1,
     frequency: 1,
     learn: 10,
