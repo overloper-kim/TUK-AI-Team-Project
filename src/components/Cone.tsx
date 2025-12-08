@@ -13,5 +13,7 @@ function Cone({ url = "cone.glb", ...props}: ConeProps): React.ReactElement {
     </group>
   );
 }
+// 선택: 미리 로드
+useGLTF.preload("cone.glb");
 
 export default Cone;
