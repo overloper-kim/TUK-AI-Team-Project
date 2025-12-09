@@ -125,6 +125,7 @@ function SideBar(): React.ReactElement {
     await axios.post('http://127.0.0.1:3000/sim_stop', {
       sim_state: "stop"
     }).then((res) => {
+      setLearning(10);
       console.log(res);
     }).catch((err) => {
       console.log(err);
