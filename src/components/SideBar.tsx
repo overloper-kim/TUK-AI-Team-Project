@@ -177,8 +177,8 @@ function SideBar(): React.ReactElement {
                         {lane} 차선
                       </p> */}
                       <div>
-                        <Button onClick={setThreeLine} className="w-full my-2">3차선 설정</Button>
-                        <Button onClick={setFiveLine} className="w-full my-2">5차선 설정</Button>
+                        <Button onClick={setThreeLine} disabled={running} className="w-full my-2">3차선 설정</Button>
+                        <Button onClick={setFiveLine} disabled={running} className="w-full my-2">5차선 설정</Button>
                       </div>
                     </div>
                   </SidebarMenuSub>
@@ -195,7 +195,7 @@ function SideBar(): React.ReactElement {
                     <div className="py-3">
                       <Slider defaultValue={[0]} min={1} max={10} step={1} value={[obstacle]} onValueChange={(value) => {
                         setObstacle(value[0])
-                      }} />
+                      }} disabled={running} />
                       <p className="text-right py-3">
                         {obstacle} 개
                       </p>
@@ -214,7 +214,7 @@ function SideBar(): React.ReactElement {
                     <div className="py-3">
                       <Slider defaultValue={[0]} min={1} max={10} step={1} value={[frequency]} onValueChange={(value) => {
                         setFrequency(value[0])
-                      }} />
+                      }} disabled={running} />
                       <p className="text-right py-3">
                         {frequency} 초
                       </p>
@@ -233,7 +233,7 @@ function SideBar(): React.ReactElement {
                     <div className="py-3">
                       <Slider defaultValue={[0]} min={10} max={100} step={10} value={[learning]} onValueChange={(value) => {
                         setLearning(value[0])
-                      }} />
+                      }} disabled={running} />
                       <p className="text-right py-3">
                         {learning} 회
                       </p>
