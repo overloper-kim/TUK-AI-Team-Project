@@ -33,6 +33,7 @@ const ObstacleMover = ({
   laneWidth,
 }: ObstacleMoverProps) => {
   const running = useConfigureStore((s) => s.running);
+  const setRunning = useConfigureStore((s) => s.setRunning);
   const moveForward = useObstacleStore((s) => s.moveForward);
   const clear = useObstacleStore((s) => s.clear);
   const setTargetLane = useCarStore((s) => s.setTargetLane);
@@ -65,7 +66,12 @@ const ObstacleMover = ({
       const hitZ = Math.abs(o.z - carZ) < 0.4; // 앞뒤 여유 더 축소
       if (hitX && hitZ) {
         clear();
-        setLearn(learn - 1);
+        // getState로 최신 learn 값을 읽고 0 이하로 내려가지 않게 막음
+        const nextLearn = Math.max(0, learn - 1);
+        setLearn(nextLearn);
+        if (nextLearn === 0) {
+          setRunning(false);
+        }
         toast.error("충돌이 발생되었습니다.");
         break;
       }
@@ -201,6 +207,7 @@ function AiDisplay(props: DisplayProps): React.ReactElement {
         {/* 장애물은 도로 메쉬 회전에 휘둘리지 않게 별도 배치 */}
         <Suspense fallback={null}>
           {obstacles.map((o) => {
+            console.log(obstacles)
             const x = laneCenterX(o.lane);
             return (
               <Cone

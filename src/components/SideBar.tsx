@@ -25,7 +25,7 @@ import { useCarStore } from "@/store/useCarStore";
 
 function SideBar(): React.ReactElement {
   const lane = useConfigureStore((s) => s.lane);
-  const obstacle =  useConfigureStore((s) => s.obs);
+  const obstacle = useConfigureStore((s) => s.obs);
   const frequency = useConfigureStore((s) => s.frequency);
   const learning = useConfigureStore((s) => s.learn);
   const running = useConfigureStore((s) => s.running);
@@ -40,12 +40,30 @@ function SideBar(): React.ReactElement {
   const clear = useObstacleStore((s) => s.clear);
   const resetCar = useCarStore((s) => s.reset);
 
-  // 목표 개수까지 즉시 채우기
+  // 목표 개수까지 채우기(약간의 딜레이를 두고 순차 생성)
   const ensureObstacleCount = () => {
     const { obs: target, lane: laneNow } = useConfigureStore.getState();
     const { obstacles } = useObstacleStore.getState();
     const deficit = Math.max(0, target - obstacles.length);
-    for (let i = 0; i < deficit; i += 1) {
+    if (deficit === 0) return;
+
+    // 가능한 경우 빈 차선에 우선 배치해 겹침을 줄인다.
+    const existingLanes = new Set(obstacles.map((o) => o.lane));
+    const allLanes = Array.from({ length: laneNow }, (_, i) => i);
+    const freeLanes = allLanes.filter((l) => !existingLanes.has(l));
+
+    let remaining = deficit;
+
+    // 1) 남은 빈 차선에 우선 배치
+    while (remaining > 0 && freeLanes.length > 0) {
+      const laneIdx = Math.floor(Math.random() * freeLanes.length);
+      const laneForSpawn = freeLanes.splice(laneIdx, 1)[0];
+      spawn(laneNow, undefined, laneForSpawn);
+      remaining -= 1;
+    }
+
+    // 2) 그래도 부족하면 랜덤 배치
+    for (let i = 0; i < remaining; i += 1) {
       spawn(laneNow);
     }
   };
@@ -79,58 +97,64 @@ function SideBar(): React.ReactElement {
   }, [obstacle, running]);
 
   const returnSwal = () => {
-    return (
-        Swal.fire({
-          draggable: true,
-          title: "시뮬레이션 오류",
-          text: "시뮬레이션 오류가 발생했습니다. 로그를 확인하세요.",
-          icon: "error",
-          confirmButtonText: "확인",
-          background: "#404040",
-          color: "#FFFFFF",
-          confirmButtonColor: "#FF1313",
-        })
-    )
-  }
-  
-  const startSimulation = async(event: React.MouseEvent<HTMLButtonElement>) => {
-    event.preventDefault();
-
-    await axios.post('http://127.0.0.1:3000/sim_start', {
-      lane: lane,
-      obs: obstacle,
-      frequency: frequency,
-      learn: learning,
-    }).then((res) => {
-      console.log(res);
-      toast.success("시뮬레이션이 시작 되었습니다.");
-    }).catch((err) => {
-      console.log(err);
-      returnSwal();
+    return Swal.fire({
+      draggable: true,
+      title: "시뮬레이션 오류",
+      text: "시뮬레이션 오류가 발생했습니다. 로그를 확인하세요.",
+      icon: "error",
+      confirmButtonText: "확인",
+      background: "#404040",
+      color: "#FFFFFF",
+      confirmButtonColor: "#FF1313",
     });
-
-    // 차량 위치 초기화 후 러닝 상태를 켜서 훅/인터벌이 동작하도록 함
-    resetCar(lane);
-    setRunning(true);
-    clear();
-    // 시작 시 바로 목표 개수까지 채우기
-    ensureObstacleCount();
-    // 주기 기다리지 않고 즉시 인터벌 시작
-    startInterval();
   };
 
-  const stopSimulation = async(event: React.MouseEvent<HTMLButtonElement>) => {
+  const startSimulation = async (
+    event: React.MouseEvent<HTMLButtonElement>
+  ) => {
     event.preventDefault();
 
-    await axios.post('http://127.0.0.1:3000/sim_stop', {
-      sim_state: "stop"
-    }).then((res) => {
-      setLearning(10);
-      console.log(res);
-    }).catch((err) => {
-      console.log(err);
-      returnSwal();
-    });
+    await axios
+      .post("http://127.0.0.1:3000/sim_start", {
+        lane: lane,
+        obs: obstacle,
+        frequency: frequency,
+        learn: learning,
+      })
+      .then((res) => {
+        console.log(res);
+        toast.success("시뮬레이션이 시작 되었습니다.");
+
+        // 차량 위치 초기화 후 러닝 상태를 켜서 훅/인터벌이 동작하도록 함
+        resetCar(lane);
+        setRunning(true);
+        clear();
+        // 시작 시 바로 목표 개수까지 채우기
+        ensureObstacleCount();
+        // 주기 기다리지 않고 즉시 인터벌 시작
+        startInterval();
+      })
+      .catch((err) => {
+        console.log(err);
+        returnSwal();
+      });
+  };
+
+  const stopSimulation = async (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+
+    await axios
+      .post("http://127.0.0.1:3000/sim_stop", {
+        sim_state: "stop",
+      })
+      .then((res) => {
+        setLearning(10);
+        console.log(res);
+      })
+      .catch((err) => {
+        console.log(err);
+        returnSwal();
+      });
 
     if (timerRef.current) {
       clearInterval(timerRef.current);
@@ -151,22 +175,22 @@ function SideBar(): React.ReactElement {
   const setFiveLine = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
     setLane(5);
-  }
+  };
 
   return (
     <SidebarProvider className="w-fit">
       <Sidebar className="dark text-white bg-[#202020]">
         <SidebarHeader className="text-center py-5">
-          <h3 className="text-md">
-            시뮬레이터 설정
-          </h3>
+          <h3 className="text-md">시뮬레이터 설정</h3>
         </SidebarHeader>
         <SidebarContent>
           <SidebarMenu>
             <Collapsible defaultOpen className="group/collapsible">
               <SidebarMenuItem>
                 <CollapsibleTrigger asChild>
-                  <SidebarMenuButton className="p-3">차선 설정</SidebarMenuButton>
+                  <SidebarMenuButton className="p-3">
+                    차선 설정
+                  </SidebarMenuButton>
                 </CollapsibleTrigger>
                 <CollapsibleContent>
                   <SidebarMenuSub>
@@ -178,8 +202,20 @@ function SideBar(): React.ReactElement {
                         {lane} 차선
                       </p> */}
                       <div>
-                        <Button onClick={setThreeLine} disabled={running} className="w-full my-2">3차선 설정</Button>
-                        <Button onClick={setFiveLine} disabled={running} className="w-full my-2">5차선 설정</Button>
+                        <Button
+                          onClick={setThreeLine}
+                          disabled={running}
+                          className="w-full my-2"
+                        >
+                          3차선 설정
+                        </Button>
+                        <Button
+                          onClick={setFiveLine}
+                          disabled={running}
+                          className="w-full my-2"
+                        >
+                          5차선 설정
+                        </Button>
                       </div>
                     </div>
                   </SidebarMenuSub>
@@ -189,17 +225,25 @@ function SideBar(): React.ReactElement {
             <Collapsible defaultOpen className="group/collapsible">
               <SidebarMenuItem>
                 <CollapsibleTrigger asChild>
-                  <SidebarMenuButton className="p-3">장애물 개수</SidebarMenuButton>
+                  <SidebarMenuButton className="p-3">
+                    장애물 개수
+                  </SidebarMenuButton>
                 </CollapsibleTrigger>
                 <CollapsibleContent>
                   <SidebarMenuSub>
                     <div className="py-3">
-                      <Slider defaultValue={[0]} min={1} max={10} step={1} value={[obstacle]} onValueChange={(value) => {
-                        setObstacle(value[0])
-                      }} disabled={running} />
-                      <p className="text-right py-3">
-                        {obstacle} 개
-                      </p>
+                      <Slider
+                        defaultValue={[0]}
+                        min={1}
+                        max={10}
+                        step={1}
+                        value={[obstacle]}
+                        onValueChange={(value) => {
+                          setObstacle(value[0]);
+                        }}
+                        disabled={running}
+                      />
+                      <p className="text-right py-3">{obstacle} 개</p>
                     </div>
                   </SidebarMenuSub>
                 </CollapsibleContent>
@@ -208,17 +252,25 @@ function SideBar(): React.ReactElement {
             <Collapsible defaultOpen className="group/collapsible">
               <SidebarMenuItem>
                 <CollapsibleTrigger asChild>
-                  <SidebarMenuButton className="p-3">장애물 생성 주기</SidebarMenuButton>
+                  <SidebarMenuButton className="p-3">
+                    장애물 생성 주기
+                  </SidebarMenuButton>
                 </CollapsibleTrigger>
                 <CollapsibleContent>
                   <SidebarMenuSub>
                     <div className="py-3">
-                      <Slider defaultValue={[0]} min={1} max={10} step={1} value={[frequency]} onValueChange={(value) => {
-                        setFrequency(value[0])
-                      }} disabled={running} />
-                      <p className="text-right py-3">
-                        {frequency} 초
-                      </p>
+                      <Slider
+                        defaultValue={[0]}
+                        min={1}
+                        max={10}
+                        step={1}
+                        value={[frequency]}
+                        onValueChange={(value) => {
+                          setFrequency(value[0]);
+                        }}
+                        disabled={running}
+                      />
+                      <p className="text-right py-3">{frequency} 초</p>
                     </div>
                   </SidebarMenuSub>
                 </CollapsibleContent>
@@ -227,21 +279,43 @@ function SideBar(): React.ReactElement {
             <Collapsible defaultOpen className="group/collapsible">
               <SidebarMenuItem>
                 <CollapsibleTrigger asChild>
-                  <SidebarMenuButton className="p-3">반복 횟수</SidebarMenuButton>
+                  <SidebarMenuButton className="p-3">
+                    반복 횟수
+                  </SidebarMenuButton>
                 </CollapsibleTrigger>
                 <CollapsibleContent>
                   <SidebarMenuSub>
                     <div className="py-3">
-                      <Slider defaultValue={[0]} min={10} max={100} step={10} value={[learning]} onValueChange={(value) => {
-                        setLearning(value[0])
-                      }} disabled={running} />
-                      <p className="text-right py-3">
-                        {learning} 회
-                      </p>
+                      <Slider
+                        defaultValue={[0]}
+                        min={10}
+                        max={100}
+                        step={10}
+                        value={[learning]}
+                        onValueChange={(value) => {
+                          setLearning(value[0]);
+                        }}
+                        disabled={running}
+                      />
+                      <p className="text-right py-3">{learning} 회</p>
                       <div className="py-3">
-                        <Button className="w-full my-2 bg-blue-500 text-white font-bold" disabled={running} onClick={startSimulation}>시뮬레이션 시작</Button>
-                        <Button className="w-full my-2 bg-red-500 text-white font-bold" disabled={!running} onClick={stopSimulation}>시뮬레이션 정지</Button>
-                        <Button className="w-full my-2 bg-green-500 text-white font-bold">학습 파일 가져오기</Button>
+                        <Button
+                          className="w-full my-2 bg-blue-500 text-white font-bold"
+                          disabled={running}
+                          onClick={startSimulation}
+                        >
+                          시뮬레이션 시작
+                        </Button>
+                        <Button
+                          className="w-full my-2 bg-red-500 text-white font-bold"
+                          disabled={!running}
+                          onClick={stopSimulation}
+                        >
+                          시뮬레이션 정지
+                        </Button>
+                        <Button className="w-full my-2 bg-green-500 text-white font-bold">
+                          학습 파일 가져오기
+                        </Button>
                       </div>
                     </div>
                   </SidebarMenuSub>

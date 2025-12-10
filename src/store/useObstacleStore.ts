@@ -15,7 +15,7 @@ interface ObstacleStoreType {
 
   spawn: (laneCount: number, zOverride?: number, laneOverride?: number) => void;
   clear: () => void;
-  moveForward: (speed: number) => void; // delta 보정된 속도값 전달
+  moveForward: (speed: number) => void; // delta 이동량(프레임마다 더해짐)
 }
 
 export const useObstacleStore = create<ObstacleStoreType>()(
@@ -25,18 +25,32 @@ export const useObstacleStore = create<ObstacleStoreType>()(
 
     spawn: (laneCount, zOverride, laneOverride) =>
       set((state) => {
-        // 완전 랜덤 차선 선택(override가 있으면 우선)
-        const lane =
-          laneOverride ?? Math.floor(Math.random() * laneCount);
-        // z 간격도 약간 랜덤하게 줘서 겹침 최소화
-        const gap = 3 + Math.random() * 3; // 3~6
-        // 기본 시작 위치를 더 카메라 근처로 당김
-        const baseZ = -8;
+        const lane = laneOverride ?? Math.floor(Math.random() * laneCount);
+        const gap = 4 + Math.random() * 3; // 4~7
+        const baseZ = -12;
         const currentMinZ =
           state.obstacles.length === 0
             ? baseZ
             : Math.min(...state.obstacles.map((o) => o.z));
-        const z = zOverride ?? currentMinZ - gap;
+        const sameLane = state.obstacles.filter((o) => o.lane === lane);
+        const sameLaneMinZ =
+          sameLane.length > 0 ? Math.min(...sameLane.map((o) => o.z)) : null;
+        let z =
+          zOverride ??
+          (sameLaneMinZ !== null ? sameLaneMinZ : currentMinZ) - gap;
+
+        const minDistance = 2;
+        let safetyPass = 0;
+        while (
+          state.obstacles.some(
+            (o) => o.lane === lane && Math.abs(o.z - z) < minDistance
+          )
+        ) {
+          z -= minDistance;
+          safetyPass += 1;
+          if (safetyPass > 10) break; // 무한루프 방지
+        }
+
         state.obstacles.push({
           id: state.nextId++,
           lane,
@@ -53,26 +67,22 @@ export const useObstacleStore = create<ObstacleStoreType>()(
     moveForward: (speed) =>
       set((state) => {
         state.obstacles.forEach((o) => {
-          // 카메라(+Z) 쪽으로 전진
           o.z += speed;
         });
 
-        // 카메라를 지나친 장애물 제거
         const passed = state.obstacles.filter((o) => o.z >= 40).length;
         state.obstacles = state.obstacles.filter((o) => o.z < 40);
 
-        // 안전 통과한 개수만큼 learn 감소 (0 아래로 내려가지 않게 처리)
         if (passed > 0) {
           const cfg = useConfigureStore.getState();
           const nextLearn = Math.max(0, cfg.learn - passed);
           cfg.setLearn(nextLearn);
-          // 학습 횟수가 0이 되면 시뮬레이션 종료
           if (nextLearn === 0) {
             cfg.setRunning(false);
             state.obstacles = [];
             state.nextId = 1;
             cfg.setLearn(10);
-            toast.success("학습이 완료되었습니다.");
+            toast.success("학습이 완료되었습니다!");
           }
         }
       }),

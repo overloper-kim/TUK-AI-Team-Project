@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { useGLTF } from "@react-three/drei";
 
 type ConeProps = React.JSX.IntrinsicElements["group"] & {
@@ -7,9 +7,11 @@ type ConeProps = React.JSX.IntrinsicElements["group"] & {
 
 function Cone({ url = "cone.glb", ...props}: ConeProps): React.ReactElement {
   const { scene } = useGLTF(url);
+  // GLTF는 하나의 scene 객체를 공유하므로 복제해서 각각 렌더링
+  const clonedScene = useMemo(() => scene.clone(), [scene]);
   return (
     <group {...props}>
-      <primitive object={scene} />
+      <primitive object={clonedScene} />
     </group>
   );
 }
