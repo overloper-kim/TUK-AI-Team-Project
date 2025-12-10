@@ -14,6 +14,7 @@ interface ObstacleStoreType {
   nextId: number;
 
   spawn: (laneCount: number, zOverride?: number, laneOverride?: number) => void;
+  syncFromBackend: (obstacles: { lane: number; z: number }[]) => void;
   clear: () => void;
   moveForward: (speed: number) => void; // delta 이동량(프레임마다 더해짐)
 }
@@ -56,6 +57,17 @@ export const useObstacleStore = create<ObstacleStoreType>()(
           lane,
           z,
         });
+      }),
+
+    syncFromBackend: (obstacles) =>
+      set((state) => {
+        // 백엔드에서 내려온 장애물 상태를 그대로 반영 (id는 프론트에서 재할당)
+        state.obstacles = obstacles.map((o, idx) => ({
+          id: idx + 1,
+          lane: o.lane,
+          z: o.z,
+        }));
+        state.nextId = state.obstacles.length + 1;
       }),
 
     clear: () =>

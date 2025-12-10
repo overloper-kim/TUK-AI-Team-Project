@@ -119,7 +119,7 @@ function SideBar(): React.ReactElement {
         lane: lane,
         obs: obstacle,
         frequency: frequency,
-        learn: learning,
+        learn: Boolean(learning), // 백엔드 요구 형식: bool
       })
       .then((res) => {
         console.log(res);

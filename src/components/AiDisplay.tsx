@@ -138,6 +138,8 @@ function AiDisplay(props: DisplayProps): React.ReactElement {
   const carZ = useCarStore((s) => s.z);
   const setTargetLane = useCarStore((s) => s.setTargetLane);
   const setX = useCarStore((s) => s.setX);
+  const running = useConfigureStore((s) => s.running);
+  const collisionRef = React.useRef(0);
 
   const centerOffset = (laneCount - 1) / 2; // 짝/홀 상관없이 중앙 기준
   const roadWidth = laneWidth * laneCount;
@@ -159,6 +161,50 @@ function AiDisplay(props: DisplayProps): React.ReactElement {
     setTargetLane(centerLane);
     setX(laneCenterX(centerLane));
   }, [laneCount, setTargetLane, setX]);
+
+  // 백엔드 강화학습 step JSON을 수신해 상태를 동기화
+  React.useEffect(() => {
+    if (!running) return;
+
+    const es = new EventSource("http://127.0.0.1:3000/sim_stream");
+
+    es.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data?.type !== "step") return;
+
+        const { state, collisions } = data;
+
+        if (state?.car_lane !== undefined) {
+          useCarStore.getState().setTargetLane(state.car_lane);
+        }
+
+        if (Array.isArray(state?.obstacles)) {
+          useObstacleStore.getState().syncFromBackend(state.obstacles);
+        }
+
+        if (
+          typeof collisions === "number" &&
+          collisions > collisionRef.current
+        ) {
+          toast.error(`충돌 발생 (누적 ${collisions}회)`);
+        }
+        collisionRef.current =
+          typeof collisions === "number" ? collisions : collisionRef.current;
+      } catch (err) {
+        console.error("Invalid step payload:", err);
+      }
+    };
+
+    es.onerror = (err) => {
+      console.error("Simulation stream error:", err);
+      toast.error("시뮬레이션 스트림 연결 오류");
+    };
+
+    return () => {
+      es.close();
+    };
+  }, [running]);
 
   return (
     <div className="size-full p-3 bg-[#404040]">
