@@ -6,8 +6,6 @@ import { useObstacleStore } from "@/store/useObstacleStore";
 import { useConfigureStore } from "@/store/useConfigreStore";
 import { useCarStore } from "@/store/useCarStore";
 import { toast } from "sonner";
-// import { OrbitControls } from "@react-three/drei";
-// import * as THREE from "three";
 
 type DisplayProps = {
   carState: {
@@ -18,7 +16,6 @@ type DisplayProps = {
   laneCount: number;
 };
 
-// Canvas 안에서만 useFrame을 사용하기 때문에 별도 컴포넌트로 분리
 type ObstacleMoverProps = {
   carZ: number;
   laneCenterX: (laneIndex: number) => number;
@@ -42,11 +39,8 @@ const ObstacleMover = ({
 
   useFrame((_, delta) => {
     if (!running) return;
-    // 일시정지/탭 비활성화 등으로 delta가 튈 때 점프하지 않게 클램프
-    const cappedDelta = Math.min(delta, 0.1);
-    moveForward(13 * cappedDelta);
+    // 백엔드에서 주는 위치를 그대로 사용하므로 전진 이동은 생략
 
-    // 이동 이후 충돌 검사
     const obstacles = useObstacleStore.getState().obstacles;
     const carX = useCarStore.getState().x;
     const currentLane = Math.round(
@@ -57,27 +51,23 @@ const ObstacleMover = ({
     );
 
     for (const o of obstacles) {
-      // 같은 차선에 있고, 차량 앞쪽 근접 구간에서만 충돌로 처리
       if (o.lane !== currentLane) continue;
-      // 차량보다 뒤(-)에 있거나 멀리 앞쪽이면 스킵
       if (o.z < carZ - 0.5 || o.z > carZ + 0.8) continue;
       const ox = laneCenterX(o.lane);
-      const hitX = Math.abs(ox - carX) < 0.4; // 좌우 여유 더 축소
-      const hitZ = Math.abs(o.z - carZ) < 0.4; // 앞뒤 여유 더 축소
+      const hitX = Math.abs(ox - carX) < 0.4;
+      const hitZ = Math.abs(o.z - carZ) < 0.4;
       if (hitX && hitZ) {
         clear();
-        // getState로 최신 learn 값을 읽고 0 이하로 내려가지 않게 막음
         const nextLearn = Math.max(0, learn - 1);
         setLearn(nextLearn);
         if (nextLearn === 0) {
           setRunning(false);
         }
-        toast.error("충돌이 발생되었습니다.");
+        toast.error("충돌이 발생했습니다");
         break;
       }
     }
 
-    // 간단한 회피: 동일 차선에 가까운 장애물이 있으면 비어있는 옆 차선으로 타겟 변경
     const sameLane = obstacles
       .filter((o) => o.lane === currentLane && o.z > carZ)
       .sort((a, b) => a.z - b.z)[0];
@@ -97,7 +87,6 @@ const ObstacleMover = ({
   return null;
 };
 
-// 차선을 부드럽게 이동시키는 컴포넌트
 const CarController = ({
   laneCenterX,
   laneCount,
@@ -106,7 +95,7 @@ const CarController = ({
   laneCount: number;
 }) => {
   const running = useConfigureStore((s) => s.running);
-  const laneChangeSpeed = 10; // units/sec, 더 빠르게 차선 변경
+  const laneChangeSpeed = 10; // units/sec
 
   useFrame((_, delta) => {
     if (!running) return;
@@ -130,8 +119,8 @@ const CarController = ({
 };
 
 function AiDisplay(props: DisplayProps): React.ReactElement {
-  const laneWidth = 4; // 차선 하나 폭 (X 방향)
-  const roadLength = 250; // 앞으로 쭉 뻗는 길이 (Z 방향)
+  const laneWidth = 4;
+  const roadLength = 250;
   const { laneCount } = props;
   const obstacles = useObstacleStore((s) => s.obstacles);
   const carX = useCarStore((s) => s.x);
@@ -141,36 +130,57 @@ function AiDisplay(props: DisplayProps): React.ReactElement {
   const running = useConfigureStore((s) => s.running);
   const collisionRef = React.useRef(0);
 
-  const centerOffset = (laneCount - 1) / 2; // 짝/홀 상관없이 중앙 기준
+  const centerOffset = (laneCount - 1) / 2;
   const roadWidth = laneWidth * laneCount;
 
-  // laneIndex(0~laneCount-1) → 차선 중앙 x좌표
   const laneCenterX = (laneIndex: number) =>
     (laneIndex - centerOffset) * laneWidth;
 
-  // 차선 경계 인덱스(…, -0.5, 0.5, 1.5, …) → x좌표
   const laneBoundaryX = (boundaryIndex: number) =>
     (boundaryIndex - centerOffset) * laneWidth;
 
-  // 도로와 장애물이 카메라 원점 주변에 보이도록 중앙 배치
   const roadZ = 0;
 
-  // 차선 수가 바뀌면 차량을 중앙 차선으로 재배치
   React.useEffect(() => {
     const centerLane = (laneCount - 1) / 2;
     setTargetLane(centerLane);
     setX(laneCenterX(centerLane));
   }, [laneCount, setTargetLane, setX]);
 
-  // 백엔드 강화학습 step JSON을 수신해 상태를 동기화
+  // WebSocket으로 RL 서버 상태를 수신
   React.useEffect(() => {
     if (!running) return;
 
-    const es = new EventSource("http://127.0.0.1:3000/sim_stream");
+    const ws = new WebSocket("ws://localhost:3000/ws_simulator");
+    let intentionalClose = false;
 
-    es.onmessage = (event) => {
+    ws.onopen = () => {
+      const { lane, obs, frequency, learn } = useConfigureStore.getState();
+      ws.send(
+        JSON.stringify({
+          lane,
+          obs,
+          frequency,
+          learn: Boolean(learn),
+        })
+      );
+    };
+
+    ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
+        if (data?.type === "init") {
+          const { state } = data;
+          if (state?.car_lane !== undefined) {
+            useCarStore.getState().setTargetLane(state.car_lane);
+          }
+          if (Array.isArray(state?.obstacles)) {
+            useObstacleStore.getState().syncFromBackend(state.obstacles);
+          }
+          collisionRef.current = 0;
+          return;
+        }
+
         if (data?.type !== "step") return;
 
         const { state, collisions } = data;
@@ -189,20 +199,30 @@ function AiDisplay(props: DisplayProps): React.ReactElement {
         ) {
           toast.error(`충돌 발생 (누적 ${collisions}회)`);
         }
-        collisionRef.current =
-          typeof collisions === "number" ? collisions : collisionRef.current;
+        if (typeof collisions === "number") {
+          collisionRef.current = collisions;
+        }
       } catch (err) {
         console.error("Invalid step payload:", err);
       }
     };
 
-    es.onerror = (err) => {
+    ws.onerror = (err) => {
       console.error("Simulation stream error:", err);
-      toast.error("시뮬레이션 스트림 연결 오류");
+      if (!intentionalClose) {
+        toast.error("시뮬레이션 스트림 오류");
+      }
+    };
+
+    ws.onclose = (e) => {
+      if (!intentionalClose) {
+        console.warn("Simulation stream closed", e.code, e.reason);
+      }
     };
 
     return () => {
-      es.close();
+      intentionalClose = true;
+      ws.close();
     };
   }, [running]);
 
@@ -210,14 +230,13 @@ function AiDisplay(props: DisplayProps): React.ReactElement {
     <div className="size-full p-3 bg-[#404040]">
       <Canvas
         camera={{
-          position: [0, 10, 18], // 차 뒤·위
+          position: [0, 10, 18],
           fov: 45,
         }}
       >
         <ambientLight intensity={0.7} />
         <directionalLight position={[5, 15, 10]} intensity={2} />
 
-        {/* 이동 로직만 담당하는 헬퍼 */}
         <ObstacleMover
           carZ={carZ}
           laneCenterX={laneCenterX}
@@ -226,16 +245,12 @@ function AiDisplay(props: DisplayProps): React.ReactElement {
         />
         <CarController laneCenterX={laneCenterX} laneCount={laneCount} />
 
-        {/* 도로: Z+ 방향으로 뻗는 평면 */}
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, roadZ]}>
-          {/* X: roadWidth, Z: roadLength */}
           <planeGeometry args={[roadWidth, roadLength]} />
           <meshStandardMaterial color="#585858" />
         </mesh>
 
-        {/* 회색 차선 분리선 (laneCount-1개) */}
         {Array.from({ length: laneCount - 1 }, (_, i) => {
-          // i번째 경계 = i + 0.5 (0.5, 1.5, 2.5, ...)
           const boundaryIndex = i + 0.5;
           const x = laneBoundaryX(boundaryIndex);
           return (
@@ -250,10 +265,8 @@ function AiDisplay(props: DisplayProps): React.ReactElement {
           );
         })}
 
-        {/* 장애물은 도로 메쉬 회전에 휘둘리지 않게 별도 배치 */}
         <Suspense fallback={null}>
           {obstacles.map((o) => {
-            console.log(obstacles)
             const x = laneCenterX(o.lane);
             return (
               <Cone
