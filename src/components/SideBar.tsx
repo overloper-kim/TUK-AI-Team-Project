@@ -234,9 +234,9 @@ function SideBar(): React.ReactElement {
             <Collapsible defaultOpen className="group/collapsible">
               <SidebarMenuItem>
                 <CollapsibleTrigger asChild>
-                  <SidebarMenuButton className="p-3">
+                  {/* <SidebarMenuButton className="p-3">
                     장애물 생성 주기
-                  </SidebarMenuButton>
+                  </SidebarMenuButton> */}
                 </CollapsibleTrigger>
                 <CollapsibleContent>
                   <SidebarMenuSub>
@@ -295,9 +295,9 @@ function SideBar(): React.ReactElement {
                         >
                           시뮬레이션 정지
                         </Button>
-                        <Button className="w-full my-2 bg-green-500 text-white font-bold" disabled>
+                        {/* <Button className="w-full my-2 bg-green-500 text-white font-bold" disabled>
                           학습 파일 가져오기
-                        </Button>
+                        </Button> */}
                       </div>
                     </div>
                   </SidebarMenuSub>
